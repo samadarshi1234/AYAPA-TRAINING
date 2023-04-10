@@ -1,0 +1,91 @@
+vpc_id=$(
+  aws ec2 create-vpc \
+  --region us-east-1 \
+  --cidr-block 10.0.0.0/16 \
+  | jq .Vpc.VpcId | tr -d '"'
+)
+echo "VPC ID $vpc_id"
+
+
+aws ec2 create-tags \
+  --resources $vpc_id \
+  --tags "Key=Name,Value=Raj123" \
+  --region us-east-1
+echo "  VPC ID '$vpc_id' NAMED as 'Raj123'."
+
+subnet_id=$(
+  aws ec2 create-subnet \
+  --region us-east-1 \
+  --cidr-block 10.0.1.0/24 \
+  --availability-zone us-east-1a \
+  --vpc-id $vpc_id \
+  | jq .Subnet.SubnetId | tr -d '"'
+)
+echo "Subnet ID $subnet_id"
+
+aws ec2 create-tags \
+  --resources $subnet_id \
+  --tags "Key=Name,Value=subnetraj_private" \
+  --region us-east-1
+echo "  Subnet ID '$subnet_id' NAMED as 'subnetraj_private'."
+
+subnet_id=$(
+  aws ec2 create-subnet \
+  --region us-east-1 \
+  --cidr-block 10.0.2.0/24 \
+  --availability-zone us-east-1b \
+  --vpc-id $vpc_id \
+  | jq .Subnet.SubnetId | tr -d '"'
+)
+echo "Subnet ID $subnet_id"
+
+aws ec2 create-tags \
+  --resources $subnet_id \
+  --tags "Key=Name,Value=subnetraj_public" \
+  --region us-east-1
+echo "  Subnet ID '$subnet_id' NAMED as 'subnetraj_public'."
+
+route_table_id=$(
+  aws ec2 create-route-table \
+  --region us-east-1  \
+  --vpc-id $vpc_id \
+  | jq .RouteTable.RouteTableId | tr -d '"'
+)
+echo "Route Table ID $route_table_id"
+
+aws ec2 create-tags \
+  --resources $route_table_id \
+  --tags "Key=Name,Value=raj_Routtable" \
+  --region us-east-1
+echo "  Route Table ID '$route_table_id' NAMED as 'raj_Routtable'."
+
+ig_id=$(
+  aws ec2 create-internet-gateway \
+  --region us-east-1 \
+  | jq .InternetGateway.InternetGatewayId | tr -d '"'
+)
+echo "Internet Gateway ID $ig_id"
+
+aws ec2 create-tags \
+  --resources $ig_id \
+  --tags "Key=Name,Value=raj_igw" \
+  --region us-east-1
+echo "  Internet Gateway ID '$ig_id' NAMED as 'raj_igw'."
+
+# Attach Internet gateway to  VPC
+aws ec2 attach-internet-gateway \
+  --vpc-id $vpc_id \
+  --internet-gateway-id $ig_id \
+  --region us-east-1
+echo "  Internet Gateway ID '$ig_id' ATTACHED to VPC ID '$vpc_id'."
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,38 @@
+# Create a new VPC
+vpc_id=$(
+  aws ec2 create-vpc \
+  --region us-east-1 \
+  --cidr-block 10.0.0.0/16 \
+  | jq .Vpc.VpcId | tr -d '"'
+)
+echo "VPC ID $vpc_id"
+
+# Create a new subnet in that VPC
+subnet_id=$(
+  aws ec2 create-subnet \
+  --region us-east-1 \
+  --cidr-block 10.0.1.0/24 \
+  --availability-zone us-east-1a \
+  --vpc-id $vpc_id \
+  | jq .Subnet.SubnetId | tr -d '"'
+)
+echo "Subnet ID $subnet_id"
+
+## Setup a Route Table for that subnet
+route_table_id=$(
+  aws ec2 create-route-table \
+  --region us-east-1  \
+  --vpc-id $vpc_id \
+  | jq .RouteTable.RouteTableId | tr -d '"'
+)
+echo "Route Table ID $route_table_id"
+
+# Create an internet gateway for that Route Table
+ig_id=$(
+  aws ec2 create-internet-gateway \
+  --region us-east-1 \
+  | jq .InternetGateway.InternetGatewayId | tr -d '"'
+)
+echo "Internet Gateway ID $ig_id"
+
+

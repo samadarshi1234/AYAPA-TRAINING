@@ -1,0 +1,101 @@
+# Create a new VPC
+vpc_id=$(
+  aws ec2 create-vpc \
+  --region us-east-1 \
+  --cidr-block 10.0.0.0/16 \
+  | jq .Vpc.VpcId | tr -d '"'
+)
+echo "VPC ID $vpc_id"
+
+# Create a new subnet in that VPC
+subnet_id=$(
+  aws ec2 create-subnet \
+  --region us-east-1 \
+  --cidr-block 10.0.1.0/24 \
+  --availability-zone us-east-1a \
+  --vpc-id $vpc_id \
+  | jq .Subnet.SubnetId | tr -d '"'
+)
+echo "Subnet ID $subnet_id"
+
+## Setup a Route Table for that subnet
+route_table_id=$(
+  aws ec2 create-route-table \
+  --region us-east-1  \
+  --vpc-id $vpc_id \
+  | jq .RouteTable.RouteTableId | tr -d '"'
+)
+echo "Route Table ID $route_table_id"
+
+#aws ec2 associate-route-table \
+#--region us-east-1  \
+#--route-table-id $route_table_id \
+#--subnet-id $subnet_id
+
+# Create an internet gateway for that Route Table
+ig_id=$(
+  aws ec2 create-internet-gateway \
+  --region us-east-1 \
+  | jq .InternetGateway.InternetGatewayId | tr -d '"'
+)
+echo "Internet Gateway ID $ig_id"
+
+#aws ec2 attach-internet-gateway \
+#--region $region \
+#--internet-gateway-id $ig_id \
+#--vpc-id $vpc_id
+
+aws ec2 create-route \
+--region $region \
+--route-table-id $route_table_id \
+--destination-cidr-block "0.0.0.0/0" \
+--gateway-id $ig_id
+
+# Create a security group that allows internet traffic on port 80 and 22
+sg_id=$(
+  aws ec2 create-security-group \
+  --region $region \
+  --description "Allow http access over the internet" \
+  --group-name "public-sg" \
+  --vpc-id $vpc_id \
+  | jq .GroupId | tr -d '"'
+)
+echo "Security Group ID $sg_id"
+
+aws ec2 authorize-security-group-ingress \
+--region $region \
+--group-id $sg_id \
+--protocol "tcp" \
+--port "80" \
+--cidr "0.0.0.0/0"
+
+aws ec2 authorize-security-group-ingress \
+--region $region \
+--group-id $sg_id \
+--protocol "tcp" \
+--port "22" \
+--cidr "0.0.0.0/0"
+
+# Create a new EC2 instance on that subnet with that security group
+# ami-04d29b6f966df1537 = Amazon Linux 2
+instance_id=$(
+  aws ec2 run-instances \
+  --region $region \
+  --image-id "ami-04d29b6f966df1537" \
+  --count 1 \
+  --instance-type t2.micro \
+  --subnet-id $subnet_id \
+  --security-group-ids $sg_id \
+  --associate-public-ip-address \
+  --key-name sam-bcit \
+  --user-data "$user_data" \
+  | jq ".Instances[0].InstanceId" | tr -d '"'
+)
+echo "Instance ID $instance_id"
+
+public_ip=$(
+  aws ec2 describe-instances \
+  --region $region \
+  --instance-ids $instance_id \
+  | jq ".Reservations[0].Instances[0].PublicIpAddress" | tr -d '"'
+)

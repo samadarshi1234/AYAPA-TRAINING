@@ -1,0 +1,50 @@
+{
+
+    "Version": "2012-10-17",
+
+    "Statement": [
+
+        {
+
+            "Action": [
+
+                "ec2:DescribeInstances",
+
+                "ec2:DescribeSecurityGroups"
+
+            ],
+
+            "Resource": "*",
+
+            "Effect": "Allow"
+
+        },
+
+        {
+
+            "Action": [
+
+                "ec2:StartInstances",
+
+                "ec2:StopInstances"
+
+            ],
+
+            "Resource": [
+
+                "arn:aws:ec2:*:*:instance/i-017338889e19dca1d",
+
+                "arn:aws:ec2:*:*:instance/i-0681da6a959eefae4",
+
+                "arn:aws:ec2:*:*:security-group/sg-0837aa1e33951c8c6"
+
+            ],
+
+            "Effect": "Allow"
+
+        }
+
+    ]
+
+}
+

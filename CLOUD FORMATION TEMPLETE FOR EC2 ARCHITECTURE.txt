@@ -1,0 +1,447 @@
+
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: 'VPC: public and private subnets in two availability zones'
+
+Metadata:
+
+  'AWS::CloudFormation::Interface':
+
+    ParameterGroups:
+
+    - Label:
+
+        default: 'VPC Parameters'
+
+      Parameters:
+
+      - VPCRANGE
+
+      - PUBLICSUBNETRANGE
+
+      - PRIVATESUBNETRANGE
+
+Conditions:
+
+  UseNatGateway: !Equals
+
+    - !Ref UseNatGateway
+
+    - true
+
+Parameters:
+
+  UseNatGateway:
+
+    Description: 'Create NatGateway'
+
+    Type: 'String'
+
+    AllowedValues:
+
+      - true
+
+      - false
+
+  VPCRANGE:
+
+    Description: 'VPC RANGE'
+
+    Type: 'String'
+
+    ConstraintDescription: 'Must be in range of 0-255'
+
+  PUBLICSUBNETRANGE:
+
+    Description: 'Public Subnet in one availability zone'
+
+    Type: 'String'
+
+    ConstraintDescription: 'Must be in range of 0-255'
+
+  PRIVATESUBNETRANGE:
+
+    Description: 'Private Subnet in one availability zone'
+
+    Type: 'String'
+
+    ConstraintDescription: 'Must be in range of 0-255'
+
+  InstancesType:
+
+    Description: EC2 instance type
+
+    Type: String
+
+    Default: "t2.micro"
+
+    AllowedValues: [t2.micro, t2.small, t2.medium, t2.large]
+
+    ConstraintDescription: Please choose a valid instance type
+
+  KeyName:
+
+    Description: "Name of an existing EC2 KeyPair"
+
+    Type: "AWS::EC2::KeyPair::KeyName"
+
+    Default: "xclock"
+
+    ConstraintDescription: Please choose a valid key pair
+
+  VolumeSize2:
+
+    Description: Size of volume
+
+    Type: Number
+
+    ConstraintDescription: Please choose a valid number volume size must be in range of 1GB to 1024GB
+
+  VolumeSize1:
+
+    Description: size of volume
+
+    Type: Number
+
+    ConstraintDescription: Please choose a valid number volume size must be in range of 1GB to 1024GB
+
+  Devicelabel:
+
+    Description: Label of the Volume
+
+    Type: String
+
+    Default: /dev/sdb
+
+    AllowedValues: [/dev/sdb, /dev/sdc, /dev/sdd, /dev/sde, /dev/sdf, /dev/sdg, /dev/sdh]
+
+    ConstraintDescription: Please choose valid label
+
+  Devicelabe2:
+
+    Description: Label of the Volume
+
+    Type: String
+
+    Default: /dev/sdc
+
+    AllowedValues: [/dev/sdb, /dev/sdc, /dev/sdd, /dev/sde, /dev/sdf, /dev/sdg, /dev/sdh]
+
+    ConstraintDescription: Please choose valid label
+
+  ImageId:
+
+    Type: String
+
+    Description: Please choose the right ami
+
+    Default: ami-cfe4b2b0
+
+Resources:
+
+  VPC:
+
+    Type: 'AWS::EC2::VPC'
+
+    Properties:
+
+      CidrBlock: !Ref VPCRANGE
+
+      EnableDnsHostnames: true
+
+  InternetGateway:
+
+    Type: 'AWS::EC2::InternetGateway'
+
+    Properties:
+
+      Tags:
+
+      - Key: Name
+
+        Value: IGW
+
+  VPCGatewayAttachment:
+
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+
+    Properties:
+
+      VpcId: !Ref VPC
+
+      InternetGatewayId: !Ref InternetGateway
+
+  Publicsubnet:
+
+    Type: 'AWS::EC2::Subnet'
+
+    Properties:
+
+      AvailabilityZone: !Select [0, !GetAZs '']
+
+      CidrBlock: !Ref PUBLICSUBNETRANGE
+
+      VpcId: !Ref VPC
+
+  Privatesubnet:
+
+    Type: 'AWS::EC2::Subnet'
+
+    Properties:
+
+      AvailabilityZone: !Select [1, !GetAZs '']
+
+      CidrBlock: !Ref PRIVATESUBNETRANGE
+
+      VpcId: !Ref VPC
+
+  RouteTablePublic:
+
+    Type: 'AWS::EC2::RouteTable'
+
+    Properties:
+
+      VpcId: !Ref VPC
+
+  RouteTablePrivate:
+
+    Type: 'AWS::EC2::RouteTable'
+
+    Properties:
+
+      VpcId: !Ref VPC
+
+  RouteTableAssociationPublic:
+
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+
+    Properties:
+
+      SubnetId: !Ref Publicsubnet
+
+      RouteTableId: !Ref RouteTablePublic
+
+  RouteTableAssociationPrivate:
+
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+
+    Properties:
+
+      SubnetId: !Ref Privatesubnet
+
+      RouteTableId: !Ref RouteTablePrivate
+
+  NatGateway:
+
+    Type: "AWS::EC2::NatGateway"
+
+    DependsOn: NatPublicIP
+
+    Condition: UseNatGateway
+
+    Properties:
+
+      AllocationId: !GetAtt
+
+        - NatPublicIP
+
+        - AllocationId
+
+      SubnetId: !Ref Publicsubnet
+
+  NatPublicIP:
+
+    Type: "AWS::EC2::EIP"
+
+    DependsOn: VPC
+
+    Properties:
+
+      Domain: vpc
+
+  PrivateRoute:
+
+    Type: "AWS::EC2::Route"
+
+    Properties:
+
+      RouteTableId: !Ref RouteTablePrivate
+
+      DestinationCidrBlock: 0.0.0.0/0
+
+      NatGatewayId: !Ref NatGateway
+
+  PublicRoute:
+
+    Type: "AWS::EC2::Route"
+
+    Properties:
+
+      RouteTableId: !Ref RouteTablePublic
+
+      DestinationCidrBlock: 0.0.0.0/0
+
+      GatewayId: !Ref InternetGateway
+
+  Ec2Instance:
+
+    Type: "AWS::EC2::Instance"
+
+    Properties:
+
+      KeyName: !Ref "KeyName"  
+
+      ImageId: !Ref ImageId
+
+      SubnetId: !Ref Publicsubnet
+
+      BlockDeviceMappings:
+
+      - DeviceName: "/dev/xvda"
+
+        Ebs:
+
+          VolumeType: "io1"
+
+          Iops: "200"
+
+          DeleteOnTermination: "false"
+
+          VolumeSize: "20"
+
+      InstanceType: !Ref InstancesType
+
+      SecurityGroupIds:
+
+      - Fn::GetAtt:
+
+        - InstanceSecurityGroup
+
+        - GroupId
+
+      UserData:
+
+        Fn::Base64:                                # YAML makes userdata much cleaner
+
+          !Sub |
+
+              #!/bin/bash -ex
+
+              yum install -y php70*
+
+              yum install -y mysql57-*;
+
+              echo "<html>Ayyappa testing!!</html>" > /var/www/html/index.html;
+
+              cd /var/www/html;
+
+              chmod 755 index.html;
+
+              chkconfig httpd on;
+
+              mkdir -p /mnt/ayyappa
+
+              mkdir -p /mnt/vinay
+
+              mkfs -t ext4 /dev/xvdc
+
+              mkfs -t ext4 /dev/xvdb
+
+              echo "/dev/xvdc       /mnt/vinay   ext4 defaults,nofail 0       2" >> /etc/fstab
+
+              echo "/dev/xvdb       /mnt/ayyappa   ext4    defaults,nofail 0       2" >> /etc/fstab
+
+              service httpd restart;
+
+              echo  "<?php phpinfo(); ?>" >> /var/www/html/info.php
+
+  Myvolume1:
+
+    Type: "AWS::EC2::Volume"
+
+    Properties:
+
+      Size: !Ref VolumeSize1
+
+      AvailabilityZone: !Select [0, !GetAZs '']
+
+  AttachingVolume:
+
+    Type: "AWS::EC2::VolumeAttachment"
+
+    Properties:
+
+      InstanceId: !Ref Ec2Instance
+
+      VolumeId: !Ref Myvolume1
+
+      Device: !Ref Devicelabel
+
+  Myvolume2:
+
+    Type: "AWS::EC2::Volume"
+
+    Properties:
+
+      Size: !Ref VolumeSize2
+
+      AvailabilityZone: !Select [0, !GetAZs '']
+
+  AttachingVolume:
+
+    Type: "AWS::EC2::VolumeAttachment"
+
+    Properties:
+
+      InstanceId: !Ref Ec2Instance
+
+      VolumeId: !Ref Myvolume2
+
+      Device: !Ref Devicelabe2
+
+  InstanceSecurityGroup:
+
+       Type: "AWS::EC2::SecurityGroup"
+
+       Properties:
+
+         GroupDescription: "Enable Access to our application via port 3000 and SSH access via port 22"
+
+         VpcId: !Ref VPC
+
+         SecurityGroupIngress:
+
+         - IpProtocol: "tcp"
+
+           FromPort: "22"
+
+           ToPort: "22"
+
+           CidrIp: "0.0.0.0/0"
+
+         - IpProtocol: "tcp"
+
+           FromPort: "80"
+
+           ToPort: "80"
+
+           CidrIp: "0.0.0.0/0"
+
+  IPAddress:
+
+    Type: AWS::EC2::EIP
+
+  IPAssoc:
+
+    Type: AWS::EC2::EIPAssociation
+
+    Properties:
+
+      InstanceId: !Ref Ec2Instance
+
+      EIP: !Ref IPAddress
+
+
+
+
+

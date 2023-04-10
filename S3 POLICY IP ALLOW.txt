@@ -1,0 +1,142 @@
+
+{
+
+    "Version": "2012-10-17",
+
+    "Id": "S3PolicyId1",
+
+    "Statement": [
+
+        {
+
+            "Sid": "IPAllow",
+
+            "Effect": "Allow",
+
+            "Principal": "*",
+
+            "Action": "s3:*",
+
+            "Resource": [
+
+                "arn:aws:s3:::qa-stricar.eclature.net",
+
+                "arn:aws:s3:::qa-stricar.eclature.net/*"
+
+            ],
+
+            "Condition": {
+
+                "IpAddress": {
+
+                    "aws:SourceIp": [
+
+                        "182.71.149.34/32",
+
+                        "10.0.0.0/16"
+
+                    ]
+
+                }
+
+            }
+
+        }
+
+    ]
+
+}
+
+ 
+
+ 
+
+{
+
+    "Version": "2012-10-17",
+
+    "Id": "Policy1415115909152",
+
+    "Statement": [
+
+        {
+
+            "Sid": "Access-to-specific-VPCE-only",
+
+            "Effect": "Allow",
+
+            "Principal": "*",
+
+            "Action": "s3:*",
+
+            "Resource": [
+
+                "arn:aws:s3:::qa-s3.stricar.eclature.net",
+
+                "arn:aws:s3:::qa-s3.stricar.eclature.net/*"
+
+            ],
+
+            "Condition": {
+
+                "StringEquals": {
+
+                    "aws:sourceVpce": "vpc-06528b05b6e9d3089"
+
+                }
+
+            }
+
+        }
+
+    ]
+
+}
+
+ 
+
+
+
+{
+
+  "Version": "2012-10-17",
+
+  "Id": "S3PolicyId1",
+
+  "Statement": [
+
+    {
+
+      "Sid": "IPAllow",
+
+      "Effect": "Deny",
+
+      "Principal": "*",
+
+      "Action": "s3:*",
+
+      "Resource": [
+
+           "arn:aws:s3:::qa-s3.stricar.eclature.net",
+
+         "arn:aws:s3:::qa-s3.stricar.eclature.net/*"
+
+      ],
+
+      "Condition": {
+
+     "NotIpAddress": {"aws:SourceIp": "54.240.143.0/24"}
+
+      }
+
+    }
+
+  ]
+
+}
+
+
+
+
+
+

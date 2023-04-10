@@ -1,0 +1,4 @@
+aws ec2 --output table --query {'Subnets[*].{SubnetID:SubnetID,Name:Tags[?Key==`Name`].Value|[0],CidrBlock:CidrBlock}' describe-subnets} { {'Vpcs[*].{VpcId:VpcId,Name:Tags[?Key==`Name`].Value|[0],CidrBlock:CidrBlock}' describe-vpcs } 
+
+
+
